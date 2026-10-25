@@ -1,0 +1,297 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AlertWhy - AML alerts, explained</title>
+<style>
+  :root{
+    --bg:#0e1320;--panel:#161d2e;--panel2:#1c2538;--line:#2a3550;--text:#e8edf7;--muted:#97a4bf;
+    --red:#ff6b78;--green:#3ecf8e;--amber:#ffb454;--blue:#5aa9ff;--accent:#8794ff;--ok-bg:rgba(62,207,142,.14);
+    --focus:#ffd479;
+  }
+  @media (prefers-color-scheme: light){:root{--bg:#f3f5fb;--panel:#fff;--panel2:#eef1f9;--line:#d9dfee;--text:#171f30;--muted:#586783;--focus:#b45309}}
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--text);font:14px/1.5 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+  :focus-visible{outline:2px solid var(--focus);outline-offset:2px}
+  header{display:flex;align-items:center;gap:10px;padding:12px 20px;border-bottom:1px solid var(--line);flex-wrap:wrap}
+  h1{font-size:18px;margin:0 6px 0 0} h1 span{color:var(--accent)}
+  .spacer{flex:1}
+  .pill{display:inline-flex;align-items:center;gap:6px;font-size:12px;padding:3px 10px;border-radius:99px;background:var(--panel2);border:1px solid var(--line);color:var(--muted)}
+  .dot{width:8px;height:8px;border-radius:50%;background:var(--muted)}
+  .pill.ok .dot{background:var(--green)} .pill.warn .dot{background:var(--amber)} .pill.bad .dot{background:var(--red)}
+  .pill.ok{color:var(--text)} .pill.warn{color:var(--text)} .pill.bad{color:var(--text)}
+  button{font:inherit;background:var(--accent);color:#fff;border:0;border-radius:8px;padding:8px 14px;font-weight:600;cursor:pointer}
+  button.ghost{background:transparent;color:var(--text);border:1px solid var(--line)}
+  button.small{padding:5px 10px;font-size:12px}
+  button:disabled{opacity:.55;cursor:wait}
+  #banner{margin:12px 20px 0;padding:10px 14px;border-radius:10px;background:rgba(255,180,84,.12);border:1px solid var(--amber);display:none}
+  main{display:grid;grid-template-columns:320px minmax(0,1fr);gap:16px;padding:16px 20px;max-width:1500px;margin:auto}
+  @media(max-width:900px){main{grid-template-columns:1fr}}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:14px;margin-bottom:16px}
+  .card h2{font-size:13px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);margin:0 0 8px}
+  .alert{padding:9px 10px;border-radius:9px;border:1px solid transparent;cursor:pointer;margin-bottom:3px;display:block;width:100%;text-align:left;background:transparent;color:var(--text);font-weight:400}
+  .alert:hover{background:var(--panel2)} .alert[aria-current=true]{background:var(--panel2);border-color:var(--accent)}
+  .alert small{display:block;color:var(--muted)}
+  .alert-head{display:flex;justify-content:space-between;align-items:flex-start;gap:10px}
+  .badge{font-size:11px;font-weight:700;padding:2px 8px;border-radius:6px;flex:0 0 auto}
+  .ESCALATE{background:rgba(255,107,120,.16);color:var(--red)} .CLOSE{background:var(--ok-bg);color:var(--green)} .REVIEW{background:rgba(255,180,84,.16);color:var(--amber)}
+  .verdict{display:flex;gap:20px;align-items:center;flex-wrap:wrap}
+  .big{font-size:28px;font-weight:800;line-height:1.1}
+  .gauge{flex:1;min-width:220px} .bar{height:10px;border-radius:6px;background:var(--panel2);overflow:hidden;margin-top:6px}.bar>i{display:block;height:100%}
+  .cite{color:var(--accent);font-weight:700;cursor:pointer;border:0;background:none;padding:0;font-size:inherit}
+  .ev{border-left:4px solid var(--line);background:var(--panel2);padding:8px 12px;border-radius:0 9px 9px 0;margin:7px 0;scroll-margin-top:80px}
+  .ev.risk{border-color:var(--red)} .ev.mitigating{border-color:var(--green)} .ev.info{border-color:var(--blue)}
+  .ev.flash{outline:2px solid var(--focus)}
+  .ev .tag{font-size:11px;color:var(--muted)} .ev .pts{float:right;font-weight:700}
+  .ev.risk .pts{color:var(--red)} .ev.mitigating .pts{color:var(--green)}
+  .tl{border-left:2px solid var(--line);margin-left:6px;padding-left:14px}
+  .step{position:relative;margin:6px 0} .step::before{content:"";position:absolute;left:-20px;top:7px;width:10px;height:10px;border-radius:50%;background:var(--line)}
+  .role{display:inline-block;font-size:11px;font-weight:700;padding:1px 8px;border-radius:5px;margin-right:6px;text-transform:uppercase;letter-spacing:.04em}
+  .role.planner{background:rgba(135,148,255,.2);color:var(--accent)} .role.executor{background:rgba(90,169,255,.18);color:var(--blue)}
+  .role.evaluator{background:rgba(255,180,84,.18);color:var(--amber)} .role.memory{background:rgba(62,207,142,.18);color:var(--green)}
+  .role.narrator{background:var(--panel2);color:var(--muted)}
+  .rnd{font-size:12px;color:var(--muted);margin:10px 0 2px;font-weight:700}
+  .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(135px,1fr));gap:10px}
+  .stat{background:var(--panel2);border-radius:10px;padding:9px 10px} .stat b{display:block;font-size:17px} .stat span{color:var(--muted);font-size:12px}
+  details{margin:3px 0} summary{cursor:pointer;color:var(--muted);font-size:12px}
+  pre{white-space:pre-wrap;word-break:break-word;background:var(--bg);padding:8px;border-radius:8px;font-size:11px;max-height:200px;overflow:auto;margin:4px 0}
+  table{width:100%;border-collapse:collapse;font-size:12px} td,th{padding:5px 6px;border-bottom:1px solid var(--line);text-align:left}
+  .empty{color:var(--muted);padding:44px 10px;text-align:center}
+  .spin{display:inline-block;width:14px;height:14px;border:2px solid var(--line);border-top-color:var(--accent);border-radius:50%;animation:s .7s linear infinite;vertical-align:-2px}
+  @keyframes s{to{transform:rotate(360deg)}}
+  .row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+  input[type=text],input[type=password]{font:inherit;width:100%;padding:8px 10px;border-radius:8px;border:1px solid var(--line);background:var(--bg);color:var(--text)}
+  label{display:block;font-size:12px;color:var(--muted);margin:10px 0 3px}
+  dialog{background:var(--panel);color:var(--text);border:1px solid var(--line);border-radius:14px;padding:18px;width:min(560px,94vw)}
+  dialog::backdrop{background:rgba(0,0,0,.55)}
+  .ok-t{color:var(--green)} .bad-t{color:var(--red)} .muted{color:var(--muted)}
+  .note{font-size:12px;color:var(--muted)}
+</style>
+</head>
+<body>
+<header>
+  <h1>Alert<span>Why</span></h1>
+  <span class="pill">AML alert investigator that explains <b>why</b></span>
+  <span class="spacer"></span>
+  <span class="pill" id="p-z" title="Data layer">Zetaris: ...</span>
+  <span class="pill" id="p-m" title="Power layer">Meterless: ...</span>
+  <span class="pill" id="p-h" title="Meterless Engine">H-MEM: ...</span>
+  <button class="ghost small" id="btn-conn">Connect Meterless</button>
+  <button class="ghost small" id="btn-eval">Run benchmark</button>
+</header>
+<div id="banner" role="status"></div>
+<main>
+  <aside>
+    <div class="card"><h2>Alert queue</h2><div id="queue" role="list"></div></div>
+    <div class="card"><h2>What the agent remembers <button class="ghost small" id="btn-mem" style="float:right">Refresh</button></h2>
+      <div id="memlist" class="note">Loading...</div></div>
+  </aside>
+  <section>
+    <div class="card" id="case"><div class="empty">Select an alert, then press <b>Investigate</b>.</div></div>
+    <div class="card" id="meter"></div>
+    <div class="card" id="evalbox" style="display:none"></div>
+  </section>
+</main>
+
+<dialog id="dlg" aria-labelledby="dlg-t">
+  <h2 id="dlg-t" style="margin:0 0 4px;font-size:17px;text-transform:none;letter-spacing:0;color:var(--text)">Connect Meterless Nightshift</h2>
+  <p class="note" style="margin:0 0 6px">Open the Nightshift Console, copy the Runtime URL and Runtime API key. They are kept in this running server's memory only and are never written to disk or shown again.</p>
+  <label for="f-link">Connect link (optional, <code>http://host:port/connect#k=...</code>)</label>
+  <input type="text" id="f-link" autocomplete="off" placeholder="paste a Nightshift connect link, or fill the two fields below">
+  <label for="f-url">Nightshift URL</label>
+  <input type="text" id="f-url" autocomplete="off" placeholder="http://127.0.0.1:8088/v1">
+  <label for="f-key">Runtime API key</label>
+  <input type="password" id="f-key" autocomplete="off" placeholder="leave blank to keep the current key">
+  <label for="f-model">Model (routing mode)</label>
+  <input type="text" id="f-model" autocomplete="off" value="meterless/auto">
+  <div id="dlg-out" style="margin:12px 0" aria-live="polite"></div>
+  <div class="row" style="justify-content:flex-end">
+    <button class="ghost" id="d-close">Close</button>
+    <button class="ghost" id="d-test">Test connection</button>
+    <button id="d-apply">Use as primary provider</button>
+  </div>
+</dialog>
+
+<script>
+const $=s=>document.querySelector(s);
+const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const money=v=>'$'+(+v).toLocaleString(undefined,{minimumFractionDigits:v<1?4:2,maximumFractionDigits:v<1?4:2});
+let alerts=[],selected=null,verdicts={},last=null;
+
+async function api(path,opt){
+  const r=await fetch(path,opt);
+  if(!r.ok){let m=await r.text();try{m=JSON.parse(m).detail||m}catch(e){}throw new Error(m)}
+  return r.json();
+}
+const post=(p,b)=>api(p,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(b||{})});
+
+/* ---------- sponsor status ---------- */
+function pill(el,cls,text){el.className='pill '+cls;el.innerHTML='<span class="dot"></span>'+esc(text)}
+async function loadStatus(force){
+  let s;try{s=await api('/api/status'+(force?'?refresh=true':''))}catch(e){pill($('#p-z'),'bad','status error');return}
+  const z=s.zetaris,m=s.meterless,h=s.hmem,live=z.live;
+  pill($('#p-z'),live?'ok':'warn',live?'Zetaris live (REST)':'Zetaris NOT connected (offline fallback)');
+  const p=(m.providers||[]).find(x=>x.name==='meterless');
+  if(!p)pill($('#p-m'),'warn','Meterless not connected');
+  else if(p.state==='online')pill($('#p-m'),'ok','Meterless online');
+  else pill($('#p-m'),'bad','Meterless '+p.state);
+  pill($('#p-h'),h.state==='online'?'ok':(h.state==='disabled'?'warn':'bad'),'H-MEM '+h.state+(h.state==='online'?' ('+h.records+' records)':''));
+  const msgs=[];
+  if(!live)msgs.push('<b>Zetaris is not connected.</b> The app is using an offline DuckDB fallback so you can explore it, but that is not Zetaris. Set <code>ZETARIS_REST_URL</code> and <code>ZETARIS_API_KEY</code> in <code>.env</code>, then run <code>python scripts/zetaris_setup.py --apply</code> (or the alias <code>python scripts/zetaris_setup.py all</code>; see README).');
+  if(!p)msgs.push('<b>Meterless Nightshift is not connected.</b> The agent runs in rules-only mode (no AI planner, critic or narrator). Press <i>Connect Meterless</i>.');
+  const b=$('#banner');b.style.display=msgs.length?'block':'none';b.innerHTML=msgs.join('<br>');
+}
+
+/* ---------- queue ---------- */
+function renderQueue(){
+  $('#queue').innerHTML=alerts.map(a=>{
+    const v=verdicts[a.alert_id];
+    const badge=v?`<span class="badge ${esc(v)}">${esc(v)}</span>`:'';
+    return `<button class="alert" role="listitem" aria-current="${selected===a.alert_id}" data-id="${esc(a.alert_id)}">
+    <span class="alert-head"><span><b>${esc(a.alert_id)}</b> &middot; ${esc(a.rule_id)}<small>${esc(a.customer_name)} (${esc(a.kind)}, ${esc(a.country)})</small></span>${badge}</span></button>`;
+  }).join('');
+  document.querySelectorAll('.alert').forEach(b=>b.onclick=()=>pick(b.dataset.id));
+}
+function pick(id){
+  selected=id;last=null;renderQueue();const a=alerts.find(x=>x.alert_id===id);
+  $('#case').innerHTML=`<div class="row" style="justify-content:space-between">
+    <div><b style="font-size:16px">${esc(a.alert_id)}</b> &middot; ${esc(a.rule_desc)}<br><span class="muted">${esc(a.customer_name)} &middot; triggered ${esc(a.triggered_at)}</span></div>
+    <div class="row"><label style="margin:0"><input type="checkbox" id="use-mem" checked> use memory</label><button id="go">Investigate</button></div></div><div id="result"></div>`;
+  $('#go').onclick=()=>investigate(id);
+}
+
+/* ---------- investigate ---------- */
+async function investigate(id){
+  const btn=$('#go');btn.disabled=true;
+  $('#result').innerHTML='<div class="empty"><span class="spin"></span> The agent is planning, querying sources and checking its own evidence...</div>';
+  try{
+    const r=await api(`/api/alerts/${encodeURIComponent(id)}/investigate?memory=${$('#use-mem').checked}`,{method:'POST'});
+    last=r;verdicts[id]=r.verdict;renderQueue();render(r);refreshMeter();loadMemory();
+  }catch(e){$('#result').innerHTML='<div class="empty bad-t">Error: '+esc(e.message)+'</div>'}
+  btn.disabled=false;
+}
+function narrative(r){
+  return esc(r.narrative).replace(/\[(E\d+)\]/g,'<button class="cite" data-ev="$1">[$1]</button>');
+}
+function render(r){
+  const color={ESCALATE:'var(--red)',CLOSE:'var(--green)',REVIEW:'var(--amber)'}[r.verdict];
+  const u=r.usage,ai=r.ai;
+  const byRound={};r.trace.forEach(t=>{(byRound[t.round]=byRound[t.round]||[]).push(t)});
+  const tl=Object.keys(byRound).map(k=>`<div class="rnd">${k==0?'Setup':'Round '+k}</div><div class="tl">`+byRound[k].map(t=>
+    `<div class="step"><span class="role ${esc(t.role)}">${esc(t.role)}</span><b>${esc(t.action)}</b>
+     <span class="muted"> - ${esc(t.detail)} (${t.ms} ms)</span></div>`).join('')+'</div>').join('');
+  const evs=r.evidence.map(e=>`<div class="ev ${esc(e.kind)}" id="ev-${esc(e.id)}"><span class="pts">${e.points?((e.points>0?'+':'')+e.points):'info'}</span>
+    <span class="tag">[${esc(e.id)}] ${esc(e.source)}</span><div>${esc(e.finding)}</div>
+    ${e.tool==='explore'?`<details><summary>SQL written by the AI (read-only, guarded)</summary><pre>${esc(e.detail.sql)}</pre></details>`:''}</div>`).join('');
+  const audit=r.audit.map(a=>`<details><summary>R${a.round} &middot; ${esc(a.step)} &mdash; ${a.queries.length} queries, ${a.findings} findings${a.error?' &mdash; ERROR '+esc(a.error):''}</summary>
+    <pre>${a.queries.map(q=>esc(q.sql)+'\n  rows='+q.rows+'  '+q.ms+'ms').join('\n\n')}</pre></details>`).join('');
+  const mem=r.memory;
+  $('#result').innerHTML=`
+   <div class="verdict" style="margin-top:14px">
+     <div><div class="big" style="color:${color}">${esc(r.verdict)}</div><span class="muted">recommendation</span></div>
+     <div class="gauge"><div>Risk <b>${r.risk_score}</b>/100 &middot; confidence <b>${Math.round(r.confidence*100)}%</b> &middot; ${r.rounds} round(s) &middot; planner: ${esc(r.planner)}</div>
+       <div class="bar"><i style="width:${r.risk_score}%;background:${color}"></i></div></div></div>
+   <h2 style="margin-top:16px">Why</h2><div id="why">${narrative(r)}</div>
+   <div class="note">explanation by: ${esc(r.narrative_source)} &middot; the verdict and score always come from the evidence, never from the model</div>
+   <h2 style="margin-top:16px">Agent loop (planner &harr; executor &harr; evaluator)</h2>${tl}
+   <h2 style="margin-top:16px">Evidence chain</h2>${evs}
+   <h2 style="margin-top:16px">Analyst decision &rarr; remembered by H-MEM</h2>
+   <div class="row"><input type="text" id="note" placeholder="optional note for the case file" style="max-width:340px" aria-label="Analyst note">
+     ${['ESCALATE','CLOSE','REVIEW'].map(d=>`<button class="${d===r.verdict?'':'ghost'} small" data-dec="${d}">${d===r.verdict?'Confirm ':'Override: '}${d}</button>`).join('')}</div>
+   <div id="fb-out" class="note" aria-live="polite">${mem.enabled?(mem.recalled.length?mem.recalled.length+' earlier case(s) recalled for this alert. ':'No earlier case matched. ')+'Your decision is stored with confidence 0.9 and influences later alerts about the same customer or counterparty.':'Memory is disabled.'}${mem.error?' <span class="bad-t">'+esc(mem.error)+'</span>':''}</div>
+   <h2 style="margin-top:16px">Next steps</h2><ul>${r.next_steps.map(s=>`<li>${esc(s)}</li>`).join('')}</ul>
+   <h2 style="margin-top:16px">Sponsor technology in this run</h2>
+   <div class="grid">
+     <div class="stat"><b>${u.queries}</b><span>federated queries via ${esc(r.federation_backend)}</span></div>
+     <div class="stat"><b>${ai.calls}</b><span>AI calls via ${esc(ai.providers.join(', ')||'none')}</span></div>
+     <div class="stat"><b>${esc(ai.models.join(', ')||'-')}</b><span>model that answered</span></div>
+     <div class="stat"><b>${ai.tokens_in+ai.tokens_out}</b><span>tokens (provider-reported)</span></div>
+     <div class="stat"><b>${mem.enabled?mem.recalled.length+' recalled':'off'}</b><span>H-MEM</span></div>
+     <div class="stat"><b>${money(u.cost_usd)}</b><span>est. cost vs ${money(u.manual_cost_usd)} manual*</span></div></div>
+   <h2 style="margin-top:16px">Audit trail (every query)</h2>${audit}
+   <h2 style="margin-top:16px">Limitations</h2><ul class="muted">${r.limitations.map(s=>`<li>${esc(s)}</li>`).join('')}</ul>`;
+  document.querySelectorAll('.cite').forEach(c=>c.onclick=()=>{const el=document.getElementById('ev-'+c.dataset.ev);if(el){el.scrollIntoView({behavior:'smooth',block:'center'});el.classList.add('flash');setTimeout(()=>el.classList.remove('flash'),1600)}});
+  document.querySelectorAll('[data-dec]').forEach(b=>b.onclick=()=>decide(b.dataset.dec));
+}
+async function decide(d){
+  try{
+    const r=await post(`/api/alerts/${encodeURIComponent(selected)}/feedback`,{decision:d,note:$('#note').value});
+    $('#fb-out').innerHTML=`<span class="ok-t">Saved as ${esc(r.saved.id)}: ${esc(d)} (${r.agrees_with_agent?'agrees with':'overrides'} the agent).</span> It will be recalled on related alerts.`;
+    loadMemory();loadStatus(true);
+  }catch(e){$('#fb-out').innerHTML='<span class="bad-t">'+esc(e.message)+'</span>'}
+}
+
+/* ---------- memory list, usage meter, benchmark ---------- */
+async function loadMemory(){
+  try{
+    const m=await api('/api/memory');
+    if(!m.enabled){$('#memlist').textContent='Memory is disabled.';return}
+    if(!m.records.length){$('#memlist').textContent='Nothing yet. Investigate an alert, then confirm or override the verdict.';return}
+    $('#memlist').innerHTML=m.records.slice(0,8).map(x=>{
+      const origin=(x.tags.find(t=>t.startsWith('origin:'))||'').slice(7),dec=(x.tags.find(t=>t.startsWith('decision:'))||'').slice(9);
+      return `<div style="margin:6px 0"><span class="badge ${esc(dec)}" style="float:none">${esc(dec)}</span> <b>${esc(origin)}</b> &middot; conf ${x.confidence.toFixed(2)}${x.supersededBy?' &middot; superseded':''}<br><span class="muted">${esc(x.content.slice(0,110))}</span></div>`}).join('');
+  }catch(e){$('#memlist').textContent=e.message}
+}
+async function refreshMeter(){
+  const s=await api('/api/usage/summary');
+  $('#meter').innerHTML=`<h2>Usage meter</h2><div class="grid">
+    <div class="stat"><b>${s.investigations}</b><span>investigations</span></div>
+    <div class="stat"><b>${s.queries}</b><span>federated queries</span></div>
+    <div class="stat"><b>${s.llm_calls}</b><span>AI calls</span></div>
+    <div class="stat"><b>${s.tokens}</b><span>tokens${s.models_seen.length?' ('+esc(s.models_seen.join(', '))+')':''}</span></div>
+    <div class="stat"><b>${money(s.avg_cost_usd)}</b><span>avg est. cost / alert</span></div>
+    <div class="stat"><b>${money(s.estimated_savings_usd)}</b><span>est. saved vs manual*</span></div></div>
+    <div class="note" style="margin-top:8px">*Estimates from configurable assumptions (${money(s.manual_cost_per_alert_usd)} manual cost per alert); tokens are reported by the AI provider. Not billing data.</div>`;
+}
+$('#btn-eval').onclick=async()=>{
+  const b=$('#btn-eval');b.disabled=true;b.textContent='Running...';
+  try{
+    const r=await api('/api/evaluate',{method:'POST'});
+    r.rows.forEach(x=>verdicts[x.alert_id]=x.got);renderQueue();refreshMeter();
+    const box=$('#evalbox');box.style.display='block';
+    box.innerHTML=`<h2>Benchmark on the synthetic bank (memory off)</h2><div class="grid">
+      <div class="stat"><b>${r.correct}/${r.total}</b><span>verdicts match planted labels</span></div>
+      <div class="stat"><b>${Math.round(r.escalate_recall*100)}%</b><span>true positives escalated</span></div>
+      <div class="stat"><b>${money(r.total_cost_usd)}</b><span>total est. cost</span></div></div>
+      <div class="note" style="margin:6px 0">The labels were planted by the same authors who wrote the data and rules, so this validates the pipeline, not real-world accuracy.</div>
+      <table><tr><th>Alert</th><th>Expected</th><th>Got</th><th>Score</th><th>Rounds</th><th>Planted reason</th></tr>
+      ${r.rows.map(x=>`<tr><td>${esc(x.alert_id)}</td><td>${esc(x.expected)}</td><td><span class="badge ${esc(x.got)}" style="float:none">${esc(x.got)}</span></td><td>${x.score}</td><td>${x.rounds}</td><td>${esc(x.why)}</td></tr>`).join('')}</table>`;
+    box.scrollIntoView({behavior:'smooth'});
+  }catch(e){alert(e.message)}
+  b.disabled=false;b.textContent='Run benchmark';
+};
+$('#btn-mem').onclick=loadMemory;
+
+/* ---------- Nightshift connection dialog ---------- */
+const dlg=$('#dlg');
+function body(){return{base_url:$('#f-url').value,token:$('#f-key').value,model:$('#f-model').value,connect_link:$('#f-link').value}}
+$('#btn-conn').onclick=async()=>{
+  try{const p=await api('/api/provider');$('#f-url').value=p.base_url||'';$('#f-model').value=p.model||'meterless/auto';
+    $('#f-key').placeholder=p.has_token?'(key saved on the server - leave blank to keep)':'paste the Runtime API key'}catch(e){}
+  $('#dlg-out').innerHTML='';dlg.showModal();
+};
+$('#d-close').onclick=()=>dlg.close();
+$('#d-test').onclick=async()=>{
+  const out=$('#dlg-out');out.innerHTML='<span class="spin"></span> Testing...';$('#d-test').disabled=true;
+  try{
+    const r=await post('/api/provider/test',body());
+    out.innerHTML=r.steps.map(s=>`<div class="${s.ok?'ok-t':'bad-t'}">${s.ok?'PASS':'FAIL'} &middot; ${esc(s.step)}<div class="muted">${esc(s.detail)}${s.model?' &middot; answered by model '+esc(s.model)+' (routing mode '+esc(s.routing_mode)+')':''}</div></div>`).join('')
+      +(r.ok?'<div class="ok-t" style="margin-top:6px">Connection works. Press "Use as primary provider".</div>':'');
+  }catch(e){out.innerHTML='<span class="bad-t">'+esc(e.message)+'</span>'}
+  $('#d-test').disabled=false;
+};
+$('#d-apply').onclick=async()=>{
+  const out=$('#dlg-out');
+  try{await post('/api/provider',body());out.innerHTML='<span class="ok-t">Meterless is now the primary provider for new investigations.</span>';
+    $('#f-key').value='';$('#f-link').value='';await loadStatus(true)}
+  catch(e){out.innerHTML='<span class="bad-t">'+esc(e.message)+'</span>'}
+};
+
+(async function init(){
+  try{alerts=await api('/api/alerts');renderQueue()}catch(e){$('#queue').innerHTML='<div class="bad-t">'+esc(e.message)+'</div>'}
+  loadStatus(false);loadMemory();refreshMeter();setInterval(()=>loadStatus(false),30000);
+})();
+</script>
+</body>
+</html>
