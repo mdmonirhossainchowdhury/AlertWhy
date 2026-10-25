@@ -1,0 +1,8 @@
+---
+description: AlertWhy project conventions
+alwaysApply: true
+---
+- The LLM never decides the verdict; the evidence engine (alertwhy/tools.py, agent.py) does. The LLM only narrates, and llm.guard_ok must reject uncited or invented evidence IDs.
+- All data access goes through Federation.query(sql, params, log) so it can run on Zetaris unchanged.
+- Every AI call goes through the Nightshift router (alertwhy/llm.py) and records usage in alertwhy/usage.py (estimate only).
+- Data is synthetic; never add real personal data. Keep tests green: `python -m pytest -q`.
