@@ -1,0 +1,20 @@
+# The demo bank's three source databases (one Postgres server, three databases: core, kyc, screen).
+# Zetaris registers them as JDBC datasources (scripts/zetaris_setup.py) and federates across them.
+#   1) python -m alertwhy.cli export-pg
+#   2) docker compose up -d
+# Init scripts run only on an EMPTY volume. To reload: docker compose down -v && docker compose up -d
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: alertwhy-pg
+    environment:
+      POSTGRES_USER: alertwhy
+      POSTGRES_PASSWORD: ${ALERTWHY_PG_PASSWORD:?set ALERTWHY_PG_PASSWORD in .env}
+    ports:
+      - "${ALERTWHY_PG_PORT:-5433}:5432"
+    volumes:
+      - ./data/pg_init/01_init.sql:/docker-entrypoint-initdb.d/01_init.sql:ro
+      - ./data/pg_init/csv:/csv:ro
+      - alertwhy_pg:/var/lib/postgresql/data
+volumes:
+  alertwhy_pg:

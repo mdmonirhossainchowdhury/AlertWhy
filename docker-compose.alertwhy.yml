@@ -1,0 +1,22 @@
+# Demo source database for Zetaris. Separate from the Zetaris platform's own compose project.
+#   docker compose -f docker-compose.alertwhy.yml up -d
+# Password comes from .env (ALERTWHY_PG_PASSWORD) - never hard-code it here.
+name: alertwhy
+services:
+  pg:
+    image: postgres:16
+    container_name: alertwhy-pg
+    environment:
+      POSTGRES_USER: ${ALERTWHY_PG_USER:-alertwhy}
+      POSTGRES_PASSWORD: ${ALERTWHY_PG_PASSWORD:?set ALERTWHY_PG_PASSWORD in .env}
+    ports:
+      - "${ALERTWHY_PG_PORT:-5433}:5432"
+    volumes:
+      - alertwhy-pg-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${ALERTWHY_PG_USER:-alertwhy}"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+volumes:
+  alertwhy-pg-data:
