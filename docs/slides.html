@@ -1,0 +1,81 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>AlertWhy — Open Agent Hackathon 2026</title>
+<style>
+  :root { --bg:#0e1320; --panel:#161d2e; --text:#e8edf7; --muted:#97a4bf; --accent:#8794ff; --red:#ff6b78; --green:#3ecf8e; }
+  * { box-sizing: border-box; }
+  body { margin: 0; font: 20px/1.4 system-ui, sans-serif; background: var(--bg); color: var(--text); }
+  section { min-height: 100vh; padding: 8vh 10vw; border-bottom: 1px solid #2a3550; }
+  h1 { font-size: 42px; margin: 0 0 12px; }
+  h2 { font-size: 28px; color: var(--accent); margin: 0 0 16px; }
+  .muted { color: var(--muted); }
+  ul { max-width: 720px; }
+  .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; max-width: 900px; }
+  code { background: #1c2538; padding: 2px 6px; border-radius: 6px; }
+</style>
+</head>
+<body>
+<section>
+  <p class="muted">Open Agent Hackathon 2026 · Track 02 · The Agent That Can Explain Why</p>
+  <h1>AlertWhy</h1>
+  <p>AML alerts, explained — with cited evidence, a confidence score, and a cost meter.</p>
+</section>
+<section>
+  <h2>Problem &amp; users</h2>
+  <p>Banks run transaction monitoring. Most alerts are false positives. Analysts spend ~25 minutes per case (assumption) across core banking, KYC, sanctions, news, and reference data. Regulators require an auditable <em>why</em>.</p>
+  <p class="muted">Users: AML analysts and MLROs. Global: any bank or fintech with TM alerts.</p>
+</section>
+<section>
+  <h2>Solution</h2>
+  <ul>
+    <li>Investigate one alert across five fragmented sources, in place.</li>
+    <li>Return ESCALATE / CLOSE / REVIEW with risk, confidence, evidence chain, and next steps.</li>
+    <li>Never auto-accuse: mixed signals → REVIEW; strong sanctions → always escalate.</li>
+  </ul>
+</section>
+<section>
+  <h2>Agent workflow</h2>
+  <p>Planner ↔ Executor ↔ Evaluator, with H-MEM recall and a citation-guarded narrator.</p>
+  <p>The evidence engine decides the verdict. The LLM only explains. Invented citations are rejected.</p>
+</section>
+<section>
+  <h2>Architecture</h2>
+  <p>Five sources → Zetaris query-in-place → AlertWhy agent → verdict + audit trail → Meterless Nightshift AI + H-MEM memory.</p>
+  <p class="muted">Same SQL on live Zetaris as on the local DuckDB fallback. The UI refuses to call the fallback “Zetaris”.</p>
+</section>
+<section>
+  <h2>Tech stack</h2>
+  <p>Python, FastAPI, DuckDB (offline demo), vanilla JS UI, pytest. Built in Cursor. Optional NVIDIA Nemotron as a secondary OpenAI-compatible narrator.</p>
+</section>
+<section>
+  <h2>Zetaris</h2>
+  <p>Every number comes from <code>Federation.query()</code>. Three JDBC datasources (<code>core_pg</code>, <code>kyc_pg</code>, <code>screen_pg</code>) stay in place. Sensitive bank data is not copied into the agent.</p>
+</section>
+<section>
+  <h2>Meterless</h2>
+  <p>Nightshift is the primary AI runtime (plan, critic, guarded SQL, narration). H-MEM stores analyst decisions so later alerts about the same customer recall prior cases. Usage per investigation is metered as an estimate, not as billing.</p>
+</section>
+<section>
+  <h2>What is unique</h2>
+  <ul>
+    <li>Mitigating evidence (same-name sanctions with different DOB, payroll batches, stable history) can close false positives.</li>
+    <li>Citation guard: the model cannot invent evidence IDs.</li>
+    <li>Honest uncertainty and a human confirm/override path written into H-MEM.</li>
+  </ul>
+</section>
+<section>
+  <h2>Results (honest)</h2>
+  <p>19/19 on planted synthetic scenarios — pipeline validation, not real-world accuracy. Tests cover the Zetaris REST contract (fakes), Nightshift provider (fakes), SQL guard, H-MEM, agent loop, and API.</p>
+</section>
+<section>
+  <h2>NVIDIA</h2>
+  <p>Optional Nemotron narration via <code>MODEL_BASE_URL</code> / <code>NEMOTRON_MODEL</code> when Nightshift is not the narrator. Do not claim it in the video unless it is configured.</p>
+</section>
+<section>
+  <h2>Next</h2>
+  <p>Real FATF lists, graph layering analytics, analyst feedback as labelled training, SAR drafting, a bank pilot with query-in-place only.</p>
+</section>
+</body>
+</html>
