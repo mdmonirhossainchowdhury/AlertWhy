@@ -1,0 +1,15 @@
+{
+  "name": "alertwhy-hmem",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Meterless H-MEM engine (unmodified Apache-2.0 reference implementation, vendored) plus a JSON-lines bridge used by AlertWhy.",
+  "license": "Apache-2.0",
+  "type": "module",
+  "scripts": {
+    "conformance": "node --import tsx conformance/runner.ts",
+    "bridge": "tsx bridge.ts"
+  },
+  "devDependencies": {
+    "tsx": "^4.19.0"
+  }
+}
